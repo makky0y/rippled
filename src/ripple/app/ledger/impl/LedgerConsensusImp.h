@@ -292,8 +292,6 @@ private:
     /** We have a new LCL and must accept it */
     void beginAccept (bool synchronous);
 
-    void endConsensus (bool correctLCL);
-
 
     /** Add our load fee to our validation */
     void addLoad(STValidation::ref val);

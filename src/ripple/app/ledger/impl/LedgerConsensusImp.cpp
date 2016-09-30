@@ -1069,6 +1069,8 @@ void LedgerConsensusImp<Traits>::accept (TxSet_t const& set)
         correct = haveCorrectLCL_;
     }
 
+    app_.getOPs ().endConsensus (correct);
+
     endConsensus (correct);
 }
 
@@ -1670,12 +1672,6 @@ void LedgerConsensusImp<Traits>::beginAccept (bool synchronous)
                 that->accept (consensusSet);
             });
     }
-}
-
-template <class Traits>
-void LedgerConsensusImp<Traits>::endConsensus (bool correctLCL)
-{
-    app_.getOPs ().endConsensus (correctLCL);
 }
 
 template <class Traits>
