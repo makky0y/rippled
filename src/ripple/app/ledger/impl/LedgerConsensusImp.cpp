@@ -1070,8 +1070,6 @@ void LedgerConsensusImp<Traits>::accept (TxSet_t const& set)
     }
 
     app_.getOPs ().endConsensus (correct);
-
-    endConsensus (correct);
 }
 
 template <class Traits>
