@@ -48,15 +48,16 @@ Json::Value doLedgerData (RPC::Context& context)
     if (!lpLedger)
         return jvResult;
 
+    bool const isMarker = params.isMember (jss::marker);
     boost::optional<ReadView::key_type> key = ReadView::key_type();
-    if (params.isMember (jss::marker))
+    if (isMarker)
     {
         Json::Value const& jMarker = params[jss::marker];
         if (! (jMarker.isString () && key->SetHex (jMarker.asString ())))
             return RPC::expected_field_error (jss::marker, "valid");
     }
 
-    bool isBinary = params[jss::binary].asBool();
+    bool const isBinary = params[jss::binary].asBool();
 
     int limit = -1;
     if (params.isMember (jss::limit))
@@ -74,6 +75,14 @@ Json::Value doLedgerData (RPC::Context& context)
 
     jvResult[jss::ledger_hash] = to_string (lpLedger->info().hash);
     jvResult[jss::ledger_index] = lpLedger->info().seq;
+
+    if (! isMarker)
+    {
+        // Return base ledger data on first query
+        jvResult[jss::ledger] = getJson (
+            LedgerFill (*lpLedger, isBinary ?
+                LedgerFill::Options::binary : 0));
+    }
 
     Json::Value& nodes = jvResult[jss::state];
 
