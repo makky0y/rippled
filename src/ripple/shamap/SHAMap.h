@@ -292,7 +292,8 @@ private:
 
     // Descend with filter
     SHAMapAbstractNode* descendAsync (SHAMapInnerNode* parent, int branch,
-        SHAMapSyncFilter* filter, bool& pending) const;
+        SHAMapSyncFilter* filter, bool& pending,
+        std::function<SHAMapInnerNode* parent, int branch, SHAMapAbstractNode* node>& function) const;
 
     std::pair <SHAMapAbstractNode*, SHAMapNodeID>
         descend (SHAMapInnerNode* parent, SHAMapNodeID const& parentID,

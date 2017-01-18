@@ -139,6 +139,7 @@ SHAMap::getMissingNodes(std::size_t max, SHAMapSyncFilter* filter)
 
     while (1)
     {
+        int deferredCount = 0;
         std::vector <std::tuple <SHAMapInnerNode*, int, SHAMapNodeID>> deferredReads;
         deferredReads.reserve (maxDefer + 16);
 
@@ -176,7 +177,11 @@ SHAMap::getMissingNodes(std::size_t max, SHAMapSyncFilter* filter)
                     {
                         SHAMapNodeID childID = nodeID.getChildNodeID (branch);
                         bool pending = false;
-                        auto d = descendAsync (node, branch, filter, pending);
+                        auto d = descendAsync (node, branch, filter, pending,
+                            [&deferredNodes, childID, childHash](SHAMapAbstraceNode* node)
+                            {
+                                deferredNodes.emplace_back (childID, childHash.as_uint256(), node);
+                            });
 
                         if (!d)
                         {
@@ -193,7 +198,7 @@ SHAMap::getMissingNodes(std::size_t max, SHAMapSyncFilter* filter)
                             else
                             {
                                 // read is deferred
-                                deferredReads.emplace_back (node, branch, childID);
+                                ++deferredCount;
                             }
 
                             fullBelow = false; // This node is not known full below
@@ -238,19 +243,19 @@ SHAMap::getMissingNodes(std::size_t max, SHAMapSyncFilter* filter)
             }
 
         }
-        while ((node != nullptr) && (deferredReads.size () <= maxDefer));
+        while ((node != nullptr) && (deferredCount <= maxDefer));
 
         // If we didn't defer any reads, we're done
-        if (deferredReads.empty ())
+        if (! deferredCount)
             break;
 
         auto const before = std::chrono::steady_clock::now();
         f_.db().waitReads();
         auto const after = std::chrono::steady_clock::now();
+        assert (deferredNodes.size() == deferredCount);
 
         auto const elapsed = std::chrono::duration_cast
             <std::chrono::milliseconds> (after - before);
-        auto const count = deferredReads.size ();
 
         // Process all deferred reads
         int hits = 0;
@@ -259,9 +264,9 @@ SHAMap::getMissingNodes(std::size_t max, SHAMapSyncFilter* filter)
             auto parent = std::get<0>(deferredNode);
             auto branch = std::get<1>(deferredNode);
             auto const& deferredNodeID = std::get<2>(deferredNode);
+            auto nodePtr = std::get<3>(deferredNode>;
             auto const& nodeHash = parent->getChildHash (branch);
 
-            auto nodePtr = fetchNodeNT(nodeHash, filter);
             if (nodePtr)
             {
                 ++hits;
@@ -283,7 +288,7 @@ SHAMap::getMissingNodes(std::size_t max, SHAMapSyncFilter* filter)
         auto const process_time = std::chrono::duration_cast
             <std::chrono::milliseconds> (std::chrono::steady_clock::now() - after);
 
-        if ((count > 50) || (elapsed.count() > 50))
+        if ((deferredCount > 50) || (elapsed.count() > 50))
         {
             JLOG(journal_.debug()) << "getMissingNodes reads " <<
                 count << " nodes (" << hits << " hits) in "
@@ -293,6 +298,7 @@ SHAMap::getMissingNodes(std::size_t max, SHAMapSyncFilter* filter)
         if (max <= 0)
             return ret;
 
+        deferredCount = 0;
     }
 
     if (ret.empty ())

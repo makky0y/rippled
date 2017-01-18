@@ -82,7 +82,8 @@ public:
         @param object The object retrieved
         @return Whether the operation completed
     */
-    virtual bool asyncFetch (uint256 const& hash, std::shared_ptr<NodeObject>& object) = 0;
+    virtual bool asyncFetch (uint256 const& hash, std::shared_ptr<NodeObject>& object,
+        std::function<std::shared_ptr<NodeObject>& object>& completionHandler) = 0;
 
     /** Wait for all currently pending async reads to complete.
     */

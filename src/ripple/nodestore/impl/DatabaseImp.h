@@ -57,7 +57,9 @@ private:
     std::mutex                m_readLock;
     std::condition_variable   m_readCondVar;
     std::condition_variable   m_readGenCondVar;
-    std::set <uint256>        m_readSet;        // set of reads to do
+    std::set <std::pair<uint256,
+        std::function<std::shared_ptr<NodeObject>&>>
+                              m_readSet;        // set of reads to do
     uint256                   m_readLast;       // last hash read
     std::vector <std::thread> m_readThreads;
     bool                      m_readShut;
@@ -123,7 +125,8 @@ public:
 
     //------------------------------------------------------------------------------
 
-    bool asyncFetch (uint256 const& hash, std::shared_ptr<NodeObject>& object) override
+    bool asyncFetch (uint256 const& hash, std::shared_ptr<NodeObject>& object,
+        std::function<std::shared_ptr<NodeObject>& object>& handler) override
     {
         // See if the object is in cache
         object = m_cache.fetch (hash);
@@ -133,7 +136,7 @@ public:
         {
             // No. Post a read
             std::lock_guard <std::mutex> lock (m_readLock);
-            if (m_readSet.insert (hash).second)
+            if (m_readSet.insert (std::make_pair(hash, handler)).second)
                 m_readCondVar.notify_one ();
         }
 
@@ -348,6 +351,7 @@ public:
         while (1)
         {
             uint256 hash;
+            std::function<std::shared_ptr<NodeObject>&> handler;
 
             {
                 std::unique_lock <std::mutex> lock (m_readLock);
@@ -363,7 +367,9 @@ public:
                     break;
 
                 // Read in key order to make the back end more efficient
-                std::set <uint256>::iterator it = m_readSet.lower_bound (m_readLast);
+                std::set <uint256,
+                    std::function<std::shared_ptr<NodeObject>& object>>::iterator
+                        it = m_readSet.lower_bound (m_readLast);
                 if (it == m_readSet.end ())
                 {
                     it = m_readSet.begin ();
@@ -373,13 +379,14 @@ public:
                     m_readGenCondVar.notify_all ();
                 }
 
-                hash = *it;
+                hash = it->first;
+                handler = std::move (it->second);
                 m_readSet.erase (it);
                 m_readLast = hash;
             }
 
             // Perform the read
-            doTimedFetch (hash, true);
+            handler(doTimedFetch (hash, true));
          }
      }
 

@@ -463,7 +463,8 @@ SHAMap::descend (SHAMapInnerNode * parent, SHAMapNodeID const& parentID,
 
 SHAMapAbstractNode*
 SHAMap::descendAsync (SHAMapInnerNode* parent, int branch,
-    SHAMapSyncFilter * filter, bool & pending) const
+    SHAMapSyncFilter * filter, bool & pending,
+    std::function<SHAMapInnerNode*, int, SHAMapAbstractNode*>& function) const
 {
     pending = false;
 
@@ -482,7 +483,16 @@ SHAMap::descendAsync (SHAMapInnerNode* parent, int branch,
         if (!ptr && backed_)
         {
             std::shared_ptr<NodeObject> obj;
-            if (! f_.db().asyncFetch (hash.as_uint256(), obj))
+            if (! f_.db().asyncFetch (hash.as_uint256(), obj,
+                [parent, branch, function, hash, f_](std::shared_ptr<NodeObject> obj)
+                {
+                    SHAMapInnerNode* node = NULL;
+                    if (obj)
+                        ptr = SHAMapAbstractNode::make(
+                            makeSlice(obj->getData()), 0, snfPREFIX,
+                                hash, true, f_.journal());
+                    function(parent, branch, node);
+                }))
             {
                 pending = true;
                 return nullptr;
