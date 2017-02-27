@@ -60,8 +60,7 @@ private:
     bool do_close_ = false;
     beast::websocket::close_reason cr_;
     waitable_timer timer_;
-    bool close_on_timer_ = false;
-    bool ping_active_ = false;
+    bool close_on_timer_ = true;
     beast::websocket::ping_data payload_;
 
 public:
@@ -206,7 +205,6 @@ run()
             std::placeholders::_1, std::placeholders::_2)});
     using namespace beast::asio;
     start_timer();
-    close_on_timer_ = true;
     impl().ws_.async_accept(request_, strand_.wrap(std::bind(
         &BaseWSPeer::on_ws_handshake, impl().shared_from_this(),
             placeholders::error)));
@@ -408,7 +406,6 @@ on_ping(error_code const& ec)
 {
     if(ec == boost::asio::error::operation_aborted)
         return;
-    ping_active_ = false;
     if(! ec)
         return;
     fail(ec, "on_ping");
@@ -443,26 +440,24 @@ on_timer(error_code ec)
 {
     if(ec == boost::asio::error::operation_aborted)
         return;
-    if(! ec)
+    if(! close_on_timer_)
     {
-        if(! close_on_timer_ || !ping_active_)
-        {
-            start_timer();
-            ping_active_ = true;
-            // TODO store nonce in payload
-            payload_ = {};
-            impl().ws_.async_ping(payload_,
-                strand_.wrap(std::bind(
-                    &BaseWSPeer::on_ping,
-                        impl().shared_from_this(),
-                            std::placeholders::_1)));
-            JLOG(this->j_.trace()) <<
-                "sent pong";
-            return;
-        }
+        start_timer();
+        close_on_timer_ = true;
+        // TODO store nonce in payload
+        payload_ = {};
+        impl().ws_.async_ping(payload_,
+            strand_.wrap(std::bind(
+                &BaseWSPeer::on_ping,
+                    impl().shared_from_this(),
+                        std::placeholders::_1)));
+        JLOG(this->j_.trace()) <<
+            "sent pong";
+        return;
+    }
+    if (!ec)
         ec = boost::system::errc::make_error_code(
             boost::system::errc::timed_out);
-    }
     fail(ec, "timer");
 }
 
