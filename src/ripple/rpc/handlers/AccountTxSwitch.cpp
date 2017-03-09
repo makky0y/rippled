@@ -32,6 +32,9 @@ Json::Value doAccountTxOld (RPC::Context& context);
 // Temporary switching code until the old account_tx is removed
 Json::Value doAccountTxSwitch (RPC::Context& context)
 {
+    if (!context.app.config().isRoleFull())
+        return rpcError (rpcNOT_ENABLED);
+
     if (context.params.isMember(jss::offset) ||
         context.params.isMember(jss::count) ||
         context.params.isMember(jss::descending) ||

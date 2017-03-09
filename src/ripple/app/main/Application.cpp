@@ -793,16 +793,20 @@ public:
         assert (mLedgerDB.get () == nullptr);
         assert (mWalletDB.get () == nullptr);
 
+        const bool isFull = config().isRoleFull();
+
         DatabaseCon::Setup setup = setup_DatabaseCon (*config_);
-        mTxnDB = std::make_unique <DatabaseCon> (setup, "transaction.db",
-                TxnDBInit, TxnDBCount);
         mLedgerDB = std::make_unique <DatabaseCon> (setup, "ledger.db",
                 LedgerDBInit, LedgerDBCount);
         mWalletDB = std::make_unique <DatabaseCon> (setup, "wallet.db",
                 WalletDBInit, WalletDBCount);
 
+        if (isFull)
+            mTxnDB = std::make_unique <DatabaseCon> (setup, "transaction.db",
+                    TxnDBInit, TxnDBCount);
+
         return
-            mTxnDB.get () != nullptr &&
+            (!isFull || (mTxnDB.get () != nullptr)) &&
             mLedgerDB.get () != nullptr &&
             mWalletDB.get () != nullptr;
     }
@@ -1028,11 +1032,15 @@ bool ApplicationImp::setup()
         << boost::str (boost::format ("PRAGMA cache_size=-%d;") %
                         (config_->getSize (siLgrDBCache) * 1024));
 
-    getTxnDB ().getSession ()
+    if (config().isRoleFull())
+    {
+        getTxnDB ().getSession ()
             << boost::str (boost::format ("PRAGMA cache_size=-%d;") %
                             (config_->getSize (siTxnDBCache) * 1024));
 
-    mTxnDB->setupCheckpointing (m_jobQueue.get(), logs());
+        mTxnDB->setupCheckpointing (m_jobQueue.get(), logs());
+    }
+
     mLedgerDB->setupCheckpointing (m_jobQueue.get(), logs());
 
     if (!updateTables ())
@@ -1815,7 +1823,8 @@ static bool schemaHas (
 
 void ApplicationImp::addTxnSeqField ()
 {
-    if (schemaHas (getTxnDB (), "AccountTransactions", 0, "TxnSeq", m_journal))
+    if (!config().isRoleFull() ||
+        schemaHas (getTxnDB (), "AccountTransactions", 0, "TxnSeq", m_journal))
         return;
 
     JLOG (m_journal.warn()) << "Transaction sequence field is missing";
@@ -1938,14 +1947,17 @@ bool ApplicationImp::updateTables ()
     }
 
     // perform any needed table updates
-    assert (schemaHas (getTxnDB (), "AccountTransactions", 0, "TransID", m_journal));
-    assert (!schemaHas (getTxnDB (), "AccountTransactions", 0, "foobar", m_journal));
-    addTxnSeqField ();
-
-    if (schemaHas (getTxnDB (), "AccountTransactions", 0, "PRIMARY", m_journal))
+    if (config().isRoleFull())
     {
-        JLOG (m_journal.fatal()) << "AccountTransactions database should not have a primary key";
-        return false;
+        assert (schemaHas (getTxnDB (), "AccountTransactions", 0, "TransID", m_journal));
+        assert (!schemaHas (getTxnDB (), "AccountTransactions", 0, "foobar", m_journal));
+        addTxnSeqField ();
+
+        if (schemaHas (getTxnDB (), "AccountTransactions", 0, "PRIMARY", m_journal))
+        {
+            JLOG (m_journal.fatal()) << "AccountTransactions database should not have a primary key";
+            return false;
+        }
     }
 
     addValidationSeqFields ();

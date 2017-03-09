@@ -119,29 +119,51 @@ Transaction::pointer Transaction::transactionFromSQLValidated(
 
 Transaction::pointer Transaction::load(uint256 const& id, Application& app)
 {
-    std::string sql = "SELECT LedgerSeq,Status,RawTxn "
-            "FROM Transactions WHERE TransID='";
-    sql.append (to_string (id));
-    sql.append ("';");
-
-    boost::optional<std::uint64_t> ledgerSeq;
-    boost::optional<std::string> status;
-    Blob rawTxn;
+    if (app.config().isRoleFull())
     {
-        auto db = app.getTxnDB ().checkoutDb ();
-        soci::blob sociRawTxnBlob (*db);
-        soci::indicator rti;
+        std::string sql = "SELECT LedgerSeq,Status,RawTxn "
+                "FROM Transactions WHERE TransID='";
+        sql.append (to_string (id));
+        sql.append ("';");
 
-        *db << sql, soci::into (ledgerSeq), soci::into (status),
-                soci::into (sociRawTxnBlob, rti);
-        if (!db->got_data () || rti != soci::i_ok)
-            return {};
+        boost::optional<std::uint64_t> ledgerSeq;
+        boost::optional<std::string> status;
+        Blob rawTxn;
+        {
+            auto db = app.getTxnDB ().checkoutDb ();
+            soci::blob sociRawTxnBlob (*db);
+            soci::indicator rti;
 
-        convert(sociRawTxnBlob, rawTxn);
+            *db << sql, soci::into (ledgerSeq), soci::into (status),
+                    soci::into (sociRawTxnBlob, rti);
+            if (db->got_data () && (rti == soci::i_ok))
+                convert(sociRawTxnBlob, rawTxn);
+        }
+
+        if (!rawTxn.empty())
+            return Transaction::transactionFromSQLValidated (
+                ledgerSeq, status, rawTxn, app);
     }
 
-    return Transaction::transactionFromSQLValidated (
-        ledgerSeq, status, rawTxn, app);
+    auto rawTxn = app.getNodeStore().fetch (id);
+    if (rawTxn)
+    {
+        try
+        {
+            SerialIter it (rawTxn->getData().data(),
+                rawTxn->getData().size());
+            auto txn = std::make_shared<STTx const> (it);
+
+            std::string reason;
+            return std::make_shared<Transaction>(txn, reason, app);
+        }
+        catch (std::exception& e)
+        {
+            return {};
+        }
+    }
+
+    return {};
 }
 
 // options 1 to include the date of the transaction

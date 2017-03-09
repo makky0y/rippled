@@ -346,6 +346,16 @@ void Config::loadFromString (std::string const& fileContents)
         }
     }
 
+    if (getSingleSection (secConfig, SECTION_ROLE, strTemp, j_))
+    {
+        if (beast::detail::ci_equal(strTemp, "validator"))
+            SERVER_ROLE = VALIDATOR;
+        else if (beast::detail::ci_equal(strTemp, "hub"))
+            SERVER_ROLE = HUB;
+        else if (beast::detail::ci_equal(strTemp, "full"))
+            SERVER_ROLE = FULL;
+    }
+
     if (getSingleSection (secConfig, SECTION_ELB_SUPPORT, strTemp, j_))
         ELB_SUPPORT         = beast::lexicalCastThrow <bool> (strTemp);
 

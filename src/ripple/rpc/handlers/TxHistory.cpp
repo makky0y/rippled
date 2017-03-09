@@ -42,6 +42,9 @@ Json::Value doTxHistory (RPC::Context& context)
     if (!context.params.isMember (jss::start))
         return rpcError (rpcINVALID_PARAMS);
 
+    if (! context.app.config().isRoleFull())
+        return rpcError (rpcNOT_ENABLED);
+
     unsigned int startIndex = context.params[jss::start].asUInt ();
 
     if ((startIndex > 10000) &&  (! isUnlimited (context.role)))

@@ -1928,6 +1928,7 @@ NetworkOPsImp::transactionsSQL (
     return sql;
 }
 
+// Do not call if isRoleFUll is false
 NetworkOPs::AccountTxs NetworkOPsImp::getAccountTxs (
     AccountID const& account,
     std::int32_t minLedger, std::int32_t maxLedger, bool descending,
@@ -1996,6 +1997,7 @@ NetworkOPs::AccountTxs NetworkOPsImp::getAccountTxs (
     return ret;
 }
 
+// Do not call if isRoleFUll is false
 std::vector<NetworkOPsImp::txnMetaLedgerType> NetworkOPsImp::getAccountTxsB (
     AccountID const& account,
     std::int32_t minLedger, std::int32_t maxLedger, bool descending,
@@ -2045,6 +2047,7 @@ std::vector<NetworkOPsImp::txnMetaLedgerType> NetworkOPsImp::getAccountTxsB (
     return ret;
 }
 
+// Do not call if isRoleFUll is false
 NetworkOPsImp::AccountTxs
 NetworkOPsImp::getTxsAccount (
     AccountID const& account, std::int32_t minLedger,
@@ -2075,6 +2078,7 @@ NetworkOPsImp::getTxsAccount (
     return ret;
 }
 
+// Do not call if isRoleFUll is false
 NetworkOPsImp::MetaTxsList
 NetworkOPsImp::getTxsAccountB (
     AccountID const& account, std::int32_t minLedger,

@@ -878,6 +878,7 @@ static bool saveValidatedLedger (
         *db << boost::str (deleteLedger % seq);
     }
 
+    if (app.config().isRoleFull())
     {
         auto db = app.getTxnDB ().checkoutDb ();
 

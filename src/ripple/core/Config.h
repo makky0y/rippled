@@ -160,7 +160,15 @@ public:
     // Node storage configuration
     std::uint32_t                      LEDGER_HISTORY = 256;
     std::uint32_t                      FETCH_DEPTH = 1000000000;
-    int                         NODE_SIZE = 0;
+    int                                NODE_SIZE = 0;
+
+    enum ServerRoleType
+    {
+        FULL,
+        HUB,
+        VALIDATOR
+    };
+    ServerRoleType              SERVER_ROLE = FULL;
 
     bool                        SSL_VERIFY = true;
     std::string                 SSL_VERIFY_FILE;
@@ -193,6 +201,7 @@ public:
     bool quiet() const { return QUIET; }
     bool silent() const { return SILENT; }
     bool standalone() const { return RUN_STANDALONE; }
+    bool isRoleFull() const { return SERVER_ROLE == FULL; }
 };
 
 } // ripple

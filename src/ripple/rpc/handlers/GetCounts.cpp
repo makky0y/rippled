@@ -86,10 +86,14 @@ Json::Value doGetCounts (RPC::Context& context)
     if (dbKB > 0)
         ret[jss::dbKBLedger] = dbKB;
 
-    dbKB = getKBUsedDB (context.app.getTxnDB ().getSession ());
+    if (context.app.config().isRoleFull())
+    {
 
-    if (dbKB > 0)
-        ret[jss::dbKBTransaction] = dbKB;
+        dbKB = getKBUsedDB (context.app.getTxnDB ().getSession ());
+
+        if (dbKB > 0)
+            ret[jss::dbKBTransaction] = dbKB;
+    }
 
     {
         std::size_t c = context.app.getOPs().getLocalTxCount ();
