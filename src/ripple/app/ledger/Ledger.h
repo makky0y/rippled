@@ -188,6 +188,10 @@ public:
     bool
     txExists (uint256 const& key) const override;
 
+    // Retrieve the hash of the transaction+metadata
+    uint256
+    txFetchKey (uint256 const& txID) const;
+
     tx_type
     txRead (key_type const& key) const override;
 

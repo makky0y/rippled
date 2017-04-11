@@ -389,6 +389,11 @@ public:
         bool descending, std::uint32_t offset, int limit,
         bool binary, bool count, bool bUnlimited);
 
+    std::pair<
+        std::shared_ptr<STTx const>,
+        std::shared_ptr<STObject const>>
+    getTxnAndMetadata(uint256 const& key);
+
     // Client information retrieval functions.
     using NetworkOPs::AccountTxs;
     AccountTxs getAccountTxs (
@@ -1921,6 +1926,35 @@ NetworkOPsImp::transactionsSQL (
                    );
     JLOG(m_journal.trace()) << "txSQL query: " << sql;
     return sql;
+}
+
+std::pair<
+    std::shared_ptr<STTx const>,
+    std::shared_ptr<STObject const>>
+NetworkOPsImp::getTxnAndMetadata(uint256 const& key)
+{
+    std::pair<
+       std::shared_ptr<STTx const>,
+       std::shared_ptr<STObject const>> result;
+
+    std::shared_ptr<NodeObject> obj = app_.getNodeStore().fetch(key);
+    if (!obj) return result;
+
+    try
+    {
+        auto node = SHAMapAbstractNode::make(makeSlice(obj->getData()),
+            0, snfPREFIX, SHAMapHash{key}, true, m_journal);
+        if (node && ! node->isInner())
+        {
+            auto n = std::static_pointer_cast<SHAMapTreeNode>(node);
+            result = deserializeTxPlusMeta(*n->peekItem());
+        }
+    }
+    catch (std::exception const&)
+    {
+        // invalid node
+    }
+    return result;
 }
 
 NetworkOPs::AccountTxs NetworkOPsImp::getAccountTxs (

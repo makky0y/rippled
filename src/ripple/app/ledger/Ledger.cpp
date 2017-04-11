@@ -501,6 +501,14 @@ Ledger::txExists (uint256 const& key) const
     return txMap_->hasItem (key);
 }
 
+uint256
+Ledger::txFetchKey (uint256 const& txID) const
+{
+    SHAMapHash h;
+    txMap_->peekItem (txID, h);
+    return h.as_uint256();
+}
+
 auto
 Ledger::txRead(
     key_type const& key) const ->

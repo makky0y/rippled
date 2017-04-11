@@ -199,6 +199,11 @@ public:
     virtual void updateLocalTx (ReadView const& newValidLedger) = 0;
     virtual std::size_t getLocalTxCount () = 0;
 
+    virtual std::pair<
+        std::shared_ptr<STTx const>,
+        std::shared_ptr<STObject const>>
+    getTxnAndMetadata(uint256 const& key) = 0;
+
     // client information retrieval functions
     using AccountTx  = std::pair<std::shared_ptr<Transaction>, TxMeta::pointer>;
     using AccountTxs = std::vector<AccountTx>;

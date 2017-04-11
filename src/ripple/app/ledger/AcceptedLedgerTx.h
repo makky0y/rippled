@@ -54,12 +54,16 @@ public:
     using ref = const pointer&;
 
 public:
+
+    // For transactions in fully-validated ledgers
     AcceptedLedgerTx (
         std::shared_ptr<ReadView const> const& ledger,
         std::shared_ptr<STTx const> const&,
         std::shared_ptr<STObject const> const&,
         AccountIDCache const&,
         Logs&);
+
+    // For proposed transactions
     AcceptedLedgerTx (
         std::shared_ptr<ReadView const> const&,
         std::shared_ptr<STTx const> const&,
