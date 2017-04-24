@@ -54,6 +54,25 @@ template<>
 boost::optional<AccountID>
 parseBase58 (std::string const& s);
 
+
+/** Convert AccountID with tag to base58 checked string */
+std::string
+toBase58 (AccountID const& v, uint32_t tag);
+
+/** Parse AccountID and tag from checked, base58 string.
+    @return boost::non if a parse error occurs
+*/
+template<>
+boost::optional<std::pair<AccountID, uint32_t>>
+parseBase58 (std::string const& s);
+
+/** Extract the AccountID from a base58 encoded
+    string in either AccountID or AccountID+tag
+    format
+*/
+boost::optional<AccountID>
+accountIDFromBase58 (std::string const&);
+
 // Parses AccountID using Bitcoin's alphabet
 // This is to catch user error. Likely not needed
 // DEPRECATED

@@ -73,8 +73,8 @@ fill_seq (Json::Value& jv,
 {
     if (jv.isMember(jss::Sequence))
         return;
-    auto const account =
-        parseBase58<AccountID>(
+    auto account =
+        accountIDFromBase58(
             jv[jss::Account].asString());
     if (! account)
         Throw<parse_error> (

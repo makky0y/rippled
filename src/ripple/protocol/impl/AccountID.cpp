@@ -18,6 +18,7 @@
 //==============================================================================
 
 #include <BeastConfig.h>
+#include <ripple/beast/core/ByteOrder.h>
 #include <ripple/protocol/AccountID.h>
 #include <ripple/protocol/PublicKey.h>
 #include <ripple/protocol/digest.h>
@@ -49,6 +50,59 @@ parseBase58 (std::string const& s)
     std::memcpy(id.data(),
         result.data(), result.size());
     return id;
+}
+
+std::string
+toBase58 (AccountID const& v, uint32_t tag)
+{
+    assert(v.size() == 20);
+
+    tag = beast::ByteOrder::swapIfLittleEndian(tag);
+
+    char buf[20 + sizeof(uint32_t)];
+    std::memcpy(buf, v.data(), v.size());
+    std::memcpy(buf + v.size(), &tag, sizeof(uint32_t));
+
+    return base58EncodeToken(
+        TOKEN_ACCOUNT_ID,
+            buf, v.size() + sizeof(uint32_t));
+}
+
+template<>
+boost::optional<std::pair<AccountID, uint32_t>>
+parseBase58 (std::string const& s)
+{
+    auto const result =
+        decodeBase58Token(
+            s, TOKEN_ACCOUNT_ID);
+    if (result.empty())
+        return boost::none;
+
+    AccountID id;
+    uint32_t tag;
+    if (result.size() != (id.size() + sizeof(tag)))
+        return boost::none;
+
+    std::memcpy(id.data(),
+        result.data(), id.size());
+
+    std::memcpy(&tag,
+        result.data()+id.size(), sizeof(uint32_t));
+    tag = beast::ByteOrder::swapIfLittleEndian(tag);
+
+    return std::make_pair (id, tag);
+}
+
+boost::optional<AccountID>
+accountIDFromBase58 (std::string const& s)
+{
+    auto id = parseBase58<AccountID>(s);
+    if (id)
+        return id;
+    auto idt = parseBase58<std::pair<AccountID, std::uint32_t>>(s);
+    if (idt)
+        return idt->first;
+    return boost::none;
 }
 
 boost::optional<AccountID>

@@ -289,7 +289,7 @@ int PathRequest::parseJson (Json::Value const& jvParams)
         return PFR_PJ_INVALID;
     }
 
-    raSrcAccount = parseBase58<AccountID>(
+    raSrcAccount = accountIDFromBase58(
         jvParams[jss::source_account].asString());
     if (! raSrcAccount)
     {
@@ -297,7 +297,7 @@ int PathRequest::parseJson (Json::Value const& jvParams)
         return PFR_PJ_INVALID;
     }
 
-    raDstAccount = parseBase58<AccountID>(
+    raDstAccount = accountIDFromBase58(
         jvParams[jss::destination_account].asString());
     if (! raDstAccount)
     {

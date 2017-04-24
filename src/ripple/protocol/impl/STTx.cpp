@@ -210,6 +210,15 @@ Json::Value STTx::getJson (int) const
 {
     Json::Value ret = STObject::getJson (0);
     ret[jss::hash] = to_string (getTransactionID ());
+
+    if (isFieldPresent(sfDestinationTag))
+        ret[jss::destination] = toBase58(
+            getAccountID(sfDestination), getFieldU32(sfDestinationTag));
+
+    if (isFieldPresent(sfSourceTag))
+        ret[jss::source] = toBase58(
+            getAccountID(sfAccount), getFieldU32(sfSourceTag));
+
     return ret;
 }
 

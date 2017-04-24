@@ -36,9 +36,30 @@ struct types_test : public beast::unit_test::suite
     }
 
     void
+    testAccountIDTag()
+    {
+        auto const s =
+            "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh";
+        std::uint32_t t = 15103;
+
+        auto const ac = parseBase58<AccountID>(s);
+        if (!ac)
+            return;
+
+        std::string const act = toBase58(*ac, t);
+        BEAST_EXPECT(act == "rp1YypSVqYmsLD93JUS2HNWx9tUhDf251o7hFGJW");
+
+        auto const parse = parseBase58<std::pair<AccountID, uint32_t>>(act);
+        BEAST_EXPECT(parse);
+        BEAST_EXPECT(parse->first == *ac);
+        BEAST_EXPECT(parse->second == t);
+    }
+
+    void
     run() override
     {
         testAccountID();
+        testAccountIDTag();
     }
 };
 
